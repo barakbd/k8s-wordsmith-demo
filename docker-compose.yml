@@ -16,4 +16,11 @@ services:
     build: web
     image: dockersamples/k8s-wordsmith-web
     ports:
-     - "8080:80"
+      - target: 80
+        published: 8080
+        mode: host
+    # deploy option needed for stack deploy on ubuntu 18.04 - otherwise node is not reachable by localhost
+    # https://forums.docker.com/t/different-connectivity-for-run-and-stack/32484
+    deploy:
+      mode: global 
+      

@@ -1,20 +1,30 @@
-version: '3.3'
+version: '3.4'
 
 services:
 
   db:
     build: db
-    image: dockersamples/k8s-wordsmith-db
+    image: barakbd/k8s-wordsmith-demo-db
+    container_name: wordsmith-db
 
-  words:
-    build: words
-    image: dockersamples/k8s-wordsmith-api
+  api:
+    container_name: wordsmith-api
+    build: api
+    image: barakbd/k8s-wordsmith-demo-api
     deploy:
       replicas: 5
 
   web:
-    build: web
-    image: dockersamples/k8s-wordsmith-web
+    container_name: wordsmith-web
+    build: 
+      context: web
+      target: test
+      args: 
+        UNIT_TEST_EXIT_CODE: 0
+
+    image: barakbd/k8s-wordsmith-demo-web
+    environment: 
+      - unit_test_exit_code=1
     ports:
       - target: 80
         published: 8080
@@ -24,3 +34,5 @@ services:
     deploy:
       mode: global 
       
+# build - docker-compose build --no-cache --build-arg unit_test_exit_code=1 web
+# run - docker stack deploy wordsmith -c docker-compose.yml

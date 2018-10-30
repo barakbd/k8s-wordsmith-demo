@@ -1,0 +1,86 @@
+version: '1.0'
+steps:
+  build_test:
+    title: Building Web Image - Test
+    description: ${{CF_BUILD_URL}}
+    type: build
+    image_name: barakbd/k8s-wordsmith-demo-web
+    working_directory: ${{main_clone}}/web/
+    tag: test
+    build_arguments:
+    - target=test
+    # - build-arg=EXIT_CODE=0
+
+  unit_test:
+    image: '${{build_test}}'
+    environment:
+      - unit_test_exit_code=1
+    commands:
+      - echo echo test from codefresh.yaml
+    # cmd:
+    #   - 1
+    on_success:
+      metadata:
+        set:
+          - '${{build_test.imageId}}':
+              - unit_test: passed
+    on_fail:
+      metadata:
+        set:
+          - '${{build_step.imageId}}':
+              - unit_test: failed
+
+  build_prod:
+    title: Building Web Image
+    type: build
+    image_name: barakbd/k8s-wordsmith-demo-web
+    description: ${{CF_BUILD_URL}}
+    working_directory: ${{main_clone}}/web/
+    dockerfile: Dockerfile
+    build_arguments:
+      --label=git_commit=${{CF_REVISION}}
+    tag: '${{CF_BRANCH_TAG_NORMALIZED}}'
+      metadata: # Declare the metadata attribute
+        set: # Specify the set operation
+            - commit_message: ${{CF_COMMIT_MESSAGE}}
+            - unit_test: passed
+            - git_commit: ${{CF_REVISION}}
+    
+  push_to_dockerhub:
+    type: push
+    title: Pushing To Dockerhub
+    description: ${{CF_BUILD_URL}}
+    candidate: ${{build_prod}}
+    tag: '${{CF_BRANCH_TAG_NORMALIZED}}'
+    image_name: barakbd/k8s-wordsmith-demo-web
+    registry: dockerhub
+    fail_fast: false
+    when:
+      branch:
+        only: 
+          - master
+
+  # integration_test:
+  #   title: Integration Test for Web Image
+  #   type: composition
+  #   composition:
+  #     version: '3'
+  #     services:
+  #       db:
+  #         image: postgres
+  #   composition_candidates:
+  #     test:
+  #       image: ${{build_the_image}} # image that will be tested
+  #       command: gulp integration_test # your test command
+
+  create_namespace:
+    title: Create Namespace In Google
+    image: codefresh/kube-helm:master
+    fail_fast: false
+    commands:
+     - kubectl config use-context ${{KUBE_CONTEXT}}
+     - kubectl create namespace ${{CF_BRANCH_TAG_NORMALIZED}}
+     - kubectl get secret codefresh-generated-r.cfcr.io-cfcr-default -o json | jq '.metadata.namespace = "${{CF_BRANCH_TAG_NORMALIZED}}"' | kubectl create --namespace ${{CF_BRANCH_TAG_NORMALIZED}} -f -
+  release_to_env:
+    title: Deploying Helm Chart
+    image: 'codefresh/plugin-helm:2.7.2'

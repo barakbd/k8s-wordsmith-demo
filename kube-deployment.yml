@@ -1,3 +1,4 @@
+#db
 apiVersion: v1
 kind: Service
 metadata:
@@ -32,10 +33,11 @@ spec:
         - containerPort: 5432
           name: db
 ---
+# api
 apiVersion: v1
 kind: Service
 metadata:
-  name: words
+  name: api
   labels:
     app: words-api
 spec:
@@ -50,7 +52,7 @@ spec:
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: words
+  name: api
   labels:
     app: words-api
 spec:
@@ -61,12 +63,13 @@ spec:
         app: words-api
     spec:
       containers:
-      - name: words
+      - name: api
         image: dockersamples/k8s-wordsmith-api
         ports:
         - containerPort: 8080
           name: api
 ---
+# web
 apiVersion: v1
 kind: Service
 metadata:

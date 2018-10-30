@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: wordsmith-db
+  name: wordsmith-db
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: wordsmith-db
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: wordsmith-db
+    spec:
+      containers:
+      - args:
+        - port=80
+        # - -cpus=2
+
+        image: barakbd/k8s-wordsmith-demo-db
+        imagePullPolicy: Never
+        name: wordsmith-db
+        resources:
+            limits:
+              cpu: 1
+              memory: 512Mi
+            requests:
+              cpu: "0.5"
+              memory: 256Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      # schedulerName: default-scheduler
+      # securityContext: {}
+      terminationGracePeriodSeconds: 30
